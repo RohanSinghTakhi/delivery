@@ -1,40 +1,32 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import './App.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Pages
+import Login from './pages/Login';
+import VendorDashboard from './pages/VendorDashboard';
+import DriverApp from './pages/DriverApp';
+import TrackingPage from './pages/TrackingPage';
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
+// Protected Route Component
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const token = localStorage.getItem('access_token');
+  const userStr = localStorage.getItem('user');
+  
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (allowedRoles && userStr) {
+    const user = JSON.parse(userStr);
+    if (!allowedRoles.includes(user.role)) {
+      return <Navigate to="/login" replace />;
     }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
+  }
+  
+  return children;
 };
 
 function App() {
@@ -42,11 +34,31 @@ function App() {
     <div className="App">
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
+          <Route path="/login" element={<Login />} />
+          <Route path="/tracking/:token" element={<TrackingPage />} />
+          
+          <Route
+            path="/vendor/*"
+            element={
+              <ProtectedRoute allowedRoles={['vendor', 'admin']}>
+                <VendorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/driver/*"
+            element={
+              <ProtectedRoute allowedRoles={['driver']}>
+                <DriverApp />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 }
