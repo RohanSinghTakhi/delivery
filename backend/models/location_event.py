@@ -20,5 +20,3 @@ class LocationEvent(LocationEventBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     order_id: Optional[str] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-from typing import Optional
