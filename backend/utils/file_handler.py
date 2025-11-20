@@ -10,8 +10,15 @@ logger = logging.getLogger(__name__)
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/app/backend/uploads")
 MAX_UPLOAD_SIZE_MB = int(os.environ.get("MAX_UPLOAD_SIZE_MB", "10"))
 
-# Ensure upload directory exists
-Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+# Ensure upload directory exists (lazy initialization)
+_upload_dir_initialized = False
+
+def _ensure_upload_dir():
+    """Ensure upload directory exists (called lazily)"""
+    global _upload_dir_initialized
+    if not _upload_dir_initialized:
+        Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+        _upload_dir_initialized = True
 
 async def save_upload_file(file: UploadFile, subfolder: str = "") -> str:
     """
@@ -22,6 +29,9 @@ async def save_upload_file(file: UploadFile, subfolder: str = "") -> str:
     replace with AWS S3, Cloudinary, or similar service.
     """
     try:
+        # Ensure upload directory exists
+        _ensure_upload_dir()
+        
         # Generate unique filename
         file_extension = Path(file.filename).suffix
         unique_filename = f"{uuid.uuid4()}{file_extension}"

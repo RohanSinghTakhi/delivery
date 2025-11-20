@@ -7,9 +7,19 @@ import os
 
 security = HTTPBearer()
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# Lazy initialization of MongoDB client
+_client = None
+_db = None
+
+def get_db():
+    """Get MongoDB database instance (lazy initialization)"""
+    global _client, _db
+    if _db is None:
+        mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+        db_name = os.environ.get('DB_NAME', 'medex_delivery')
+        _client = AsyncIOMotorClient(mongo_url)
+        _db = _client[db_name]
+    return _db
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
@@ -32,6 +42,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         )
     
     # Fetch user from database
+    db = get_db()
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user:
         raise HTTPException(

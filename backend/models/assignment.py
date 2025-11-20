@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime, timezone
 from enum import Enum
 import uuid
@@ -18,6 +18,10 @@ class AssignmentBase(BaseModel):
 class AssignmentCreate(AssignmentBase):
     pass
 
+class AssignmentDecision(BaseModel):
+    action: Literal["accept", "decline"]
+    reason: Optional[str] = None
+
 class Assignment(AssignmentBase):
     model_config = ConfigDict(extra="ignore")
     
@@ -27,6 +31,7 @@ class Assignment(AssignmentBase):
     accepted_at: Optional[datetime] = None
     declined_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    decline_reason: Optional[str] = None
 
 class AssignmentResponse(AssignmentBase):
     id: str

@@ -60,5 +60,10 @@ async def track_order(tracking_token: str):
             "created_at": order["created_at"].isoformat() if isinstance(order["created_at"], datetime) else order["created_at"]
         },
         "driver_location": driver_location,
-        "eta_minutes": eta_minutes
+        "eta_minutes": eta_minutes,
+        "customer_location": {
+            "latitude": order.get("customer_current_latitude"),
+            "longitude": order.get("customer_current_longitude"),
+            "last_update": order.get("customer_last_location_update")
+        } if order.get("customer_current_latitude") and order.get("customer_current_longitude") else None
     }

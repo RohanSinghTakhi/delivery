@@ -28,6 +28,13 @@ class OrderBase(BaseModel):
     notes: Optional[str] = None
     estimated_delivery_time: Optional[datetime] = None
 
+class CustomerLocationUpdate(BaseModel):
+    latitude: float
+    longitude: float
+    accuracy: Optional[float] = None
+    heading: Optional[float] = None
+    speed: Optional[float] = None
+
 class OrderCreate(OrderBase):
     pass
 
@@ -49,6 +56,14 @@ class Order(OrderBase):
     signature_url: Optional[str] = None
     delivered_at: Optional[datetime] = None
     
+    # Customer live location
+    customer_current_latitude: Optional[float] = None
+    customer_current_longitude: Optional[float] = None
+    customer_location_accuracy: Optional[float] = None
+    customer_location_heading: Optional[float] = None
+    customer_location_speed: Optional[float] = None
+    customer_last_location_update: Optional[datetime] = None
+    
     # Timestamps
     accepted_at: Optional[datetime] = None
     picked_up_at: Optional[datetime] = None
@@ -67,3 +82,6 @@ class OrderResponse(OrderBase):
     delivery_fee: float
     created_at: datetime
     updated_at: datetime
+    customer_current_latitude: Optional[float] = None
+    customer_current_longitude: Optional[float] = None
+    customer_last_location_update: Optional[datetime] = None

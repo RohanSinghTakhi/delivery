@@ -7,7 +7,11 @@ import os
 import logging
 from pathlib import Path
 
-# Import routes
+# Load environment variables FIRST, before any imports that need them
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
+
+# Import routes (after .env is loaded)
 from routes import (
     auth_router,
     orders_router,
@@ -20,14 +24,11 @@ from routes import (
 )
 
 # Import WebSocket handlers
-from websockets.handlers import (
+from socket_handlers.handlers import (
     handle_driver_location,
     handle_vendor_tracking,
     handle_order_tracking
 )
-
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
