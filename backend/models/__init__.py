@@ -23,6 +23,11 @@ from .assignment import (
     AssignmentDecision,
     AssignmentStatus
 )
+from .route import (
+    RoutePoint,
+    RouteOptimizationRequest,
+    RouteOptimizationResponse
+)
 
 __all__ = [
     "User", "UserCreate", "UserLogin", "UserResponse",
@@ -30,5 +35,6 @@ __all__ = [
     "Driver", "DriverCreate", "DriverResponse", "DriverStatus", "DriverLogin", "DriverPushTokenUpdate",
     "Order", "OrderCreate", "OrderResponse", "OrderStatus", "CustomerLocationUpdate",
     "LocationEvent", "LocationEventCreate",
-    "Assignment", "AssignmentCreate", "AssignmentResponse", "AssignmentDecision", "AssignmentStatus"
+    "Assignment", "AssignmentCreate", "AssignmentResponse", "AssignmentDecision", "AssignmentStatus",
+    "RoutePoint", "RouteOptimizationRequest", "RouteOptimizationResponse"
 ]

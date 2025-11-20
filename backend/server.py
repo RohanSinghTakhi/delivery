@@ -20,7 +20,8 @@ from routes import (
     tracking_router,
     reports_router,
     webhooks_router,
-    uploads_router
+    uploads_router,
+    optimization_router
 )
 
 # Import WebSocket handlers
@@ -60,6 +61,7 @@ app.include_router(tracking_router, prefix="/api")
 app.include_router(reports_router, prefix="/api")
 app.include_router(webhooks_router, prefix="/api")
 app.include_router(uploads_router, prefix="/api")
+app.include_router(optimization_router, prefix="/api")
 
 # WebSocket routes
 @app.websocket("/ws/driver")

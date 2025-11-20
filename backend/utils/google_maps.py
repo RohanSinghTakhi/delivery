@@ -138,3 +138,70 @@ def get_route_polyline(origin: Tuple[float, float], destination: Tuple[float, fl
     except Exception as e:
         logger.error(f"Error getting polyline: {e}")
         return None
+
+def optimize_route(
+    origin: Tuple[float, float],
+    waypoints: List[Tuple[float, float]],
+    destination: Optional[Tuple[float, float]] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Optimize route order using Google Directions API (optimize:true).
+    Returns dict with waypoint order, distance, duration, polyline.
+    """
+    if not waypoints:
+        return None
+    
+    destination = destination or origin
+    
+    if not GOOGLE_MAPS_API_KEY or GOOGLE_MAPS_API_KEY == "YOUR_GOOGLE_MAPS_API_KEY_HERE":
+        logger.warning("Google Maps API key not configured. Returning original waypoint order.")
+        waypoint_order = list(range(len(waypoints)))
+        total_distance = 0.0
+        total_duration = 0.0
+        prev = origin
+        for idx in waypoint_order:
+            wp = waypoints[idx]
+            dist = calculate_distance(prev, wp) or 0
+            total_distance += dist
+            prev = wp
+        total_distance += calculate_distance(prev, destination) or 0
+        return {
+            "waypoint_order": waypoint_order,
+            "ordered_waypoints": waypoint_order,
+            "total_distance_km": round(total_distance, 2),
+            "total_duration_minutes": None,
+            "polyline": None
+        }
+    
+    try:
+        waypoints_param = "optimize:true|" + "|".join(f"{lat},{lng}" for lat, lng in waypoints)
+        url = "https://maps.googleapis.com/maps/api/directions/json"
+        params = {
+            "origin": f"{origin[0]},{origin[1]}",
+            "destination": f"{destination[0]},{destination[1]}",
+            "waypoints": waypoints_param,
+            "key": GOOGLE_MAPS_API_KEY
+        }
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
+        
+        if data["status"] != "OK" or not data.get("routes"):
+            logger.error(f"Route optimization failed: {data.get('status')}")
+            return None
+        
+        route = data["routes"][0]
+        waypoint_order = route.get("waypoint_order", list(range(len(waypoints))))
+        legs = route.get("legs", [])
+        total_distance = sum(leg["distance"]["value"] for leg in legs if leg.get("distance"))
+        total_duration = sum(leg["duration"]["value"] for leg in legs if leg.get("duration"))
+        
+        return {
+            "waypoint_order": waypoint_order,
+            "ordered_waypoints": waypoint_order,
+            "total_distance_km": round(total_distance / 1000, 2) if total_distance else None,
+            "total_duration_minutes": round(total_duration / 60, 2) if total_duration else None,
+            "polyline": route.get("overview_polyline", {}).get("points")
+        }
+    except Exception as e:
+        logger.error(f"Error optimizing route: {e}")
+        return None
