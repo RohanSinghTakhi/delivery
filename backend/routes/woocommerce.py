@@ -144,3 +144,60 @@ async def update_order_status(woo_order_id: str, payload: WooStatusUpdate, _: No
     )
     return {"message": "Status updated", "status": medex_status}
 
+
+@router.get("/orders/check/{woo_order_id}")
+async def check_synced_order(woo_order_id: str):
+    """
+    Check if a WooCommerce order has been synced to MedEx backend.
+    This endpoint doesn't require authentication for easy testing.
+    """
+    order = await db.orders.find_one({"woo_order_id": woo_order_id}, {"_id": 0})
+    if not order:
+        return {
+            "synced": False,
+            "message": f"Order {woo_order_id} not found in MedEx backend",
+            "woo_order_id": woo_order_id
+        }
+    
+    return {
+        "synced": True,
+        "woo_order_id": woo_order_id,
+        "medex_order_id": order.get("id"),
+        "status": order.get("status"),
+        "woo_status": order.get("woo_status"),
+        "customer_name": order.get("customer_name"),
+        "source": order.get("source"),
+        "created_at": order.get("created_at"),
+        "updated_at": order.get("updated_at")
+    }
+
+
+@router.get("/orders/stats")
+async def get_sync_stats():
+    """
+    Get statistics about WooCommerce synced orders.
+    This endpoint doesn't require authentication for easy testing.
+    """
+    total_woo_orders = await db.orders.count_documents({"source": "woocommerce"})
+    
+    # Get orders by status
+    status_counts = {}
+    async for order in db.orders.find({"source": "woocommerce"}, {"status": 1}):
+        status = order.get("status", "unknown")
+        status_counts[status] = status_counts.get(status, 0) + 1
+    
+    # Get recent orders (last 24 hours)
+    from datetime import timedelta
+    yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+    recent_count = await db.orders.count_documents({
+        "source": "woocommerce",
+        "created_at": {"$gte": yesterday.isoformat()}
+    })
+    
+    return {
+        "total_synced_orders": total_woo_orders,
+        "recent_orders_24h": recent_count,
+        "orders_by_status": status_counts,
+        "backend_url": "http://13.201.101.182:8000"
+    }
+

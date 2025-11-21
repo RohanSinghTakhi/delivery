@@ -100,14 +100,23 @@ function medex_sync_order($order_id) {
         'timeout' => 10,
     ]);
 
-    // Log errors (optional)
+    // Enhanced logging for debugging
     if (is_wp_error($response)) {
-        error_log('MedEx sync error: ' . $response->get_error_message());
+        error_log('[MedEx Sync] ERROR for order #' . $order_id . ': ' . $response->get_error_message());
     } else {
         $status_code = wp_remote_retrieve_response_code($response);
-        if ($status_code !== 200 && $status_code !== 201) {
-            $body = wp_remote_retrieve_body($response);
-            error_log('MedEx sync failed (HTTP ' . $status_code . '): ' . $body);
+        $body = wp_remote_retrieve_body($response);
+        
+        if ($status_code === 200 || $status_code === 201) {
+            // Success - log for verification
+            error_log('[MedEx Sync] SUCCESS for order #' . $order_id . ' (HTTP ' . $status_code . ')');
+            $response_data = json_decode($body, true);
+            if ($response_data && isset($response_data['id'])) {
+                error_log('[MedEx Sync] Order synced with MedEx ID: ' . $response_data['id']);
+            }
+        } else {
+            // Error - log details
+            error_log('[MedEx Sync] FAILED for order #' . $order_id . ' (HTTP ' . $status_code . '): ' . $body);
         }
     }
 }
@@ -135,8 +144,17 @@ function medex_sync_order_on_status_change($order_id, $old_status, $new_status) 
         ]
     );
 
+    // Enhanced logging for status updates
     if (is_wp_error($response)) {
-        error_log('MedEx status sync error: ' . $response->get_error_message());
+        error_log('[MedEx Sync] Status update ERROR for order #' . $order_id . ': ' . $response->get_error_message());
+    } else {
+        $status_code = wp_remote_retrieve_response_code($response);
+        if ($status_code === 200 || $status_code === 204) {
+            error_log('[MedEx Sync] Status updated for order #' . $order_id . ': ' . $old_status . ' → ' . $new_status);
+        } else {
+            $body = wp_remote_retrieve_body($response);
+            error_log('[MedEx Sync] Status update FAILED for order #' . $order_id . ' (HTTP ' . $status_code . '): ' . $body);
+        }
     }
 }
 
