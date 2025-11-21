@@ -105,6 +105,66 @@ async def get_vendor(vendor_id: str, current_user: dict = Depends(get_current_us
     
     return VendorResponse(**vendor)
 
+
+@router.patch("/{vendor_id}/woo-id")
+async def set_woo_vendor_id(
+    vendor_id: str,
+    woo_vendor_id: str = Query(..., description="WordPress/WooCommerce vendor ID"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Set WooCommerce vendor ID for a MedEx vendor.
+    This maps WordPress vendor IDs to MedEx vendor IDs for order sync.
+    """
+    vendor = await db.vendors.find_one({"id": vendor_id}, {"_id": 0})
+    if not vendor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Vendor not found"
+        )
+    
+    # Update vendor with woo_vendor_id
+    await db.vendors.update_one(
+        {"id": vendor_id},
+        {
+            "$set": {
+                "woo_vendor_id": woo_vendor_id,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    return {
+        "message": "WooCommerce vendor ID set successfully",
+        "vendor_id": vendor_id,
+        "woo_vendor_id": woo_vendor_id
+    }
+
+
+@router.get("/by-woo-id/{woo_vendor_id}")
+async def get_vendor_by_woo_id(
+    woo_vendor_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get vendor by WooCommerce vendor ID.
+    Useful for checking if a WordPress vendor is mapped.
+    """
+    vendor = await db.vendors.find_one({"woo_vendor_id": woo_vendor_id}, {"_id": 0})
+    if not vendor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Vendor with WooCommerce ID {woo_vendor_id} not found"
+        )
+    
+    # Parse datetime
+    if isinstance(vendor.get('created_at'), str):
+        vendor['created_at'] = datetime.fromisoformat(vendor['created_at'])
+    if isinstance(vendor.get('updated_at'), str):
+        vendor['updated_at'] = datetime.fromisoformat(vendor['updated_at'])
+    
+    return VendorResponse(**vendor)
+
 @router.get("/{vendor_id}/drivers")
 async def get_vendor_drivers(vendor_id: str, current_user: dict = Depends(get_current_user)):
     """
