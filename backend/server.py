@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import sys
 import logging
 from pathlib import Path
 
@@ -11,7 +12,11 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# Import routes (after .env is loaded)
+# Ensure the backend directory is in Python path to avoid conflicts with installed 'routes' package
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+# Import routes (after .env is loaded and path is set)
 from routes import (
     auth_router,
     orders_router,

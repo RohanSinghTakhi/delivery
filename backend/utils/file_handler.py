@@ -17,7 +17,7 @@ def _ensure_upload_dir():
     """Ensure upload directory exists (called lazily)"""
     global _upload_dir_initialized
     if not _upload_dir_initialized:
-Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+        Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
         _upload_dir_initialized = True
 
 async def save_upload_file(file: UploadFile, subfolder: str = "") -> str:
