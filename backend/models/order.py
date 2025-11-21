@@ -27,6 +27,11 @@ class OrderBase(BaseModel):
     items: list = Field(default_factory=list)  # List of items/medicines
     notes: Optional[str] = None
     estimated_delivery_time: Optional[datetime] = None
+    # WooCommerce compatibility
+    woo_order_id: Optional[str] = Field(default=None, description="Original WooCommerce order ID")
+    woo_vendor_id: Optional[str] = Field(default=None, description="WooCommerce vendor ID/author")
+    woo_status: Optional[str] = None
+    source: str = Field(default="medex", description="medex | woocommerce")
 
 class CustomerLocationUpdate(BaseModel):
     latitude: float

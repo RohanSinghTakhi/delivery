@@ -10,6 +10,7 @@ class VendorBase(BaseModel):
     address: str
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    woo_vendor_id: Optional[str] = Field(default=None, description="WooCommerce vendor identifier")
 
 class VendorCreate(VendorBase):
     password: str

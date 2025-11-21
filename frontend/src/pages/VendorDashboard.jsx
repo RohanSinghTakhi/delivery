@@ -1,16 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, Package, Users, TrendingUp, Map } from 'lucide-react';
-import { orders, drivers, vendors, reports } from '../services/api';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import {
+  LayoutDashboard,
+  Package,
+  Users,
+  Map,
+  TrendingUp,
+  Route as RouteIcon,
+  LogOut
+} from 'lucide-react';
+import Overview from './vendor/Overview';
+import Orders from './vendor/Orders';
+import Drivers from './vendor/Drivers';
+import FleetMap from './vendor/FleetMap';
+import Reports from './vendor/Reports';
+import RoutePlanner from './vendor/RoutePlanner';
+import { drivers as driverApi, orders, vendors } from '@/services/api';
+
+const navItems = [
+  { label: 'Overview', path: 'overview', icon: LayoutDashboard },
+  { label: 'Orders', path: 'orders', icon: Package },
+  { label: 'Drivers', path: 'drivers', icon: Users },
+  { label: 'Fleet map', path: 'fleet-map', icon: Map },
+  { label: 'Reports', path: 'reports', icon: TrendingUp },
+  { label: 'Route planner', path: 'route-planner', icon: RouteIcon }
+];
 
 const VendorDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
-  const [vendorData, setVendorData] = useState(null);
+  const [vendor, setVendor] = useState(null);
   const [stats, setStats] = useState({ totalOrders: 0, activeDrivers: 0, completedToday: 0 });
+  const [driverList, setDriverList] = useState([]);
+  const [selectedDriverId, setSelectedDriverId] = useState('');
+  const [selectedDriver, setSelectedDriver] = useState(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -24,39 +53,52 @@ const VendorDashboard = () => {
   const loadVendorData = async (userId) => {
     try {
       const vendorRes = await vendors.getAll();
-      const vendor = vendorRes.data.find(v => v.user_id === userId);
-      if (vendor) {
-        setVendorData(vendor);
-        loadStats(vendor.id);
+      const vendorMatch = vendorRes.data.find((record) => record.user_id === userId);
+      if (vendorMatch) {
+        setVendor(vendorMatch);
+        fetchStats(vendorMatch.id);
+        fetchDrivers(vendorMatch.id);
       }
     } catch (error) {
-      console.error('Error loading vendor data:', error);
+      toast.error('Unable to load vendor profile');
+      console.error(error);
     }
   };
 
-  const loadStats = async (vendorId) => {
+  const fetchStats = async (vendorId) => {
     try {
       const [ordersRes, driversRes] = await Promise.all([
         orders.getAll({ vendor_id: vendorId }),
-        drivers.getAll({ vendor_id: vendorId })
+        driverApi.getAll({ vendor_id: vendorId })
       ]);
-      
-      const completedToday = ordersRes.data.filter(o => {
-        const createdAt = new Date(o.created_at);
+      const completedToday = ordersRes.data.filter((order) => {
+        const createdAt = new Date(order.created_at);
         const today = new Date();
-        return o.status === 'delivered' && 
-               createdAt.toDateString() === today.toDateString();
+        return order.status === 'delivered' && createdAt.toDateString() === today.toDateString();
       }).length;
-
       setStats({
         totalOrders: ordersRes.data.length,
-        activeDrivers: driversRes.data.filter(d => d.status !== 'offline').length,
+        activeDrivers: driversRes.data.filter((driver) => driver.status !== 'offline').length,
         completedToday
       });
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.error('Error loading stats', error);
     }
   };
+
+  const fetchDrivers = async (vendorId) => {
+    try {
+      const res = await vendors.getDrivers(vendorId);
+      setDriverList(res.data);
+    } catch (error) {
+      toast.error('Unable to load drivers');
+    }
+  };
+
+  useEffect(() => {
+    const driver = driverList.find((d) => d.id === selectedDriverId);
+    setSelectedDriver(driver || null);
+  }, [selectedDriverId, driverList]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -64,100 +106,107 @@ const VendorDashboard = () => {
     toast.success('Logged out successfully');
   };
 
+  const activePath = location.pathname.replace('/vendor/', '') || 'overview';
+
+  const driverStatusBadge = useMemo(() => {
+    if (!selectedDriver) return null;
+    const variants = {
+      available: 'bg-green-100 text-green-800',
+      busy: 'bg-orange-100 text-orange-800',
+      on_break: 'bg-yellow-100 text-yellow-800',
+      offline: 'bg-gray-100 text-gray-800'
+    };
+    return (
+      <Badge className={variants[selectedDriver.status] || 'bg-slate-100 text-slate-900'}>
+        {selectedDriver.status?.replace(/_/g, ' ') || 'unknown'}
+      </Badge>
+    );
+  }, [selectedDriver]);
+
   return (
-    <div className="min-h-screen bg-gray-50" data-testid="vendor-dashboard">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
+    <div className="flex min-h-screen bg-slate-50" data-testid="vendor-dashboard">
+      <aside className="hidden w-64 flex-shrink-0 border-r bg-white/90 backdrop-blur md:flex md:flex-col">
+        <div className="border-b px-6 py-5">
+          <p className="text-xs uppercase text-muted-foreground">Vendor</p>
+          <p className="text-lg font-semibold truncate">{vendor?.business_name || 'Loading...'}</p>
+        </div>
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {navItems.map(({ label, path, icon: Icon }) => (
+            <NavLink
+              key={path}
+              to={`/vendor/${path}`}
+              className={({ isActive }) =>
+                [
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
+                  isActive ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
+                ].join(' ')
+              }
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="border-t px-6 py-4">
+          <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
+        </div>
+      </aside>
+
+      <main className="flex-1">
+        <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Vendor Dashboard</h1>
-              <p className="text-sm text-gray-600">{vendorData?.business_name || 'Loading...'}</p>
+              <p className="text-sm uppercase text-muted-foreground">Vendor console</p>
+              <h1 className="text-2xl font-semibold capitalize">{activePath.replace('-', ' ')}</h1>
             </div>
-            <Button onClick={handleLogout} variant="outline" data-testid="logout-btn">
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+            <div className="flex flex-col gap-2 md:w-80">
+              <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Quick driver glance" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Select driver</SelectItem>
+                  {driverList.map((driver) => (
+                    <SelectItem key={driver.id} value={driver.id}>
+                      {driver.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedDriver && (
+                <Card>
+                  <CardContent className="flex items-center justify-between p-3 text-sm">
+                    <div>
+                      <p className="font-medium">{selectedDriver.full_name}</p>
+                      <p className="text-xs text-muted-foreground">{selectedDriver.phone}</p>
+                    </div>
+                    {driverStatusBadge}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card data-testid="total-orders-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Orders</CardTitle>
-              <Package className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.totalOrders}</div>
-            </CardContent>
-          </Card>
-
-          <Card data-testid="active-drivers-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Active Drivers</CardTitle>
-              <Users className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.activeDrivers}</div>
-            </CardContent>
-          </Card>
-
-          <Card data-testid="completed-today-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Completed Today</CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.completedToday}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link to="/vendor/orders">
-              <Button className="w-full" data-testid="view-orders-btn">
-                <Package className="mr-2 h-4 w-4" />
-                View Orders
-              </Button>
-            </Link>
-            <Link to="/vendor/drivers">
-              <Button className="w-full" data-testid="manage-drivers-btn">
-                <Users className="mr-2 h-4 w-4" />
-                Manage Drivers
-              </Button>
-            </Link>
-            <Link to="/vendor/fleet-map">
-              <Button className="w-full" data-testid="fleet-map-btn">
-                <Map className="mr-2 h-4 w-4" />
-                Fleet Map
-              </Button>
-            </Link>
-            <Link to="/vendor/reports">
-              <Button className="w-full" data-testid="reports-btn">
-                <TrendingUp className="mr-2 h-4 w-4" />
-                Reports
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Info Note */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            <strong>Note:</strong> This is the main vendor dashboard. Full order management, driver tracking,
-            and reporting features are available through the quick action buttons above. The complete
-            implementation includes real-time fleet tracking with Google Maps, driver assignment workflows,
-            and comprehensive reporting.
-          </p>
-        </div>
-      </div>
+        <section className="mx-auto max-w-6xl px-6 py-6">
+          <Routes>
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="overview" element={<Overview vendor={vendor} stats={stats} />} />
+            <Route path="orders" element={<Orders vendorId={vendor?.id} drivers={driverList} />} />
+            <Route
+              path="drivers"
+              element={<Drivers vendorId={vendor?.id} drivers={driverList} refreshDrivers={() => fetchDrivers(vendor?.id)} />}
+            />
+            <Route path="fleet-map" element={<FleetMap vendorId={vendor?.id} />} />
+            <Route path="reports" element={<Reports vendorId={vendor?.id} />} />
+            <Route path="route-planner" element={<RoutePlanner />} />
+            <Route path="*" element={<Navigate to="overview" replace />} />
+          </Routes>
+        </section>
+      </main>
     </div>
   );
 };

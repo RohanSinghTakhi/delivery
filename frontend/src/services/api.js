@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API_URL = `${BACKEND_URL}/api`;
 
 // Create axios instance
@@ -62,7 +62,9 @@ export const vendors = {
   register: (data) => api.post('/vendors/register', data),
   getAll: () => api.get('/vendors'),
   getById: (id) => api.get(`/vendors/${id}`),
-  getDrivers: (vendorId) => api.get(`/vendors/${vendorId}/drivers`)
+  getDrivers: (vendorId) => api.get(`/vendors/${vendorId}/drivers`),
+  getFleetLive: (vendorId) => api.get(`/vendors/${vendorId}/fleet/live`),
+  getDriverReport: (vendorId, params) => api.get(`/vendors/${vendorId}/drivers/report`, { params })
 };
 
 // Driver APIs
@@ -80,7 +82,9 @@ export const orders = {
   getAll: (params) => api.get('/orders', { params }),
   getById: (id) => api.get(`/orders/${id}`),
   updateStatus: (id, status) => api.patch(`/orders/${id}/status`, null, { params: { new_status: status } }),
-  assignDriver: (orderId, driverId) => api.post(`/orders/${orderId}/assign`, null, { params: { driver_id: driverId } })
+  assignDriver: (orderId, driverId) => api.post(`/orders/${orderId}/assign`, null, { params: { driver_id: driverId } }),
+  respondAssignment: (orderId, payload) => api.post(`/orders/${orderId}/assignment/respond`, payload),
+  getLiveSnapshot: (orderId) => api.get(`/orders/${orderId}/live`)
 };
 
 // Tracking APIs
@@ -112,6 +116,20 @@ export const uploads = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   }
+};
+
+// WooCommerce bridge APIs (call from secure environments like the WP plugin)
+export const woo = {
+  syncOrder: (payload, secret) =>
+    api.post('/woocommerce/orders/sync', payload, {
+      headers: secret ? { 'X-WC-Secret': secret } : undefined
+    }),
+  updateStatus: (wooOrderId, status, secret) =>
+    api.patch(
+      `/woocommerce/orders/${wooOrderId}/status`,
+      { status },
+      { headers: secret ? { 'X-WC-Secret': secret } : undefined }
+    )
 };
 
 export default api;

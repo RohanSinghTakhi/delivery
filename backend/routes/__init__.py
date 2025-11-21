@@ -7,6 +7,7 @@ from .reports import router as reports_router
 from .webhooks import router as webhooks_router
 from .uploads import router as uploads_router
 from .optimization import router as optimization_router
+from .woocommerce import router as woocommerce_router
 
 __all__ = [
     "auth_router",
@@ -17,5 +18,6 @@ __all__ = [
     "reports_router",
     "webhooks_router",
     "uploads_router",
-    "optimization_router"
+    "optimization_router",
+    "woocommerce_router"
 ]

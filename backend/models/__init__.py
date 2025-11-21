@@ -28,6 +28,9 @@ from .route import (
     RouteOptimizationRequest,
     RouteOptimizationResponse
 )
+from .wp_sync import (
+    WooOrderPayload
+)
 
 __all__ = [
     "User", "UserCreate", "UserLogin", "UserResponse",
@@ -36,5 +39,6 @@ __all__ = [
     "Order", "OrderCreate", "OrderResponse", "OrderStatus", "CustomerLocationUpdate",
     "LocationEvent", "LocationEventCreate",
     "Assignment", "AssignmentCreate", "AssignmentResponse", "AssignmentDecision", "AssignmentStatus",
-    "RoutePoint", "RouteOptimizationRequest", "RouteOptimizationResponse"
+    "RoutePoint", "RouteOptimizationRequest", "RouteOptimizationResponse",
+    "WooOrderPayload"
 ]

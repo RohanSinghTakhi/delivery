@@ -291,6 +291,7 @@ docker-compose down
 - [ ] Set up monitoring (Sentry, DataDog)
 - [ ] Configure backup strategy
 - [ ] Set up logging aggregation
+- [ ] Connect WooCommerce plugin to `/api/woocommerce/*` endpoints (see `WORDPRESS_COMPATIBILITY.md`)
 
 ## 🧪 Testing
 
@@ -316,6 +317,8 @@ Import `postman_collection.json` into Postman for pre-configured API tests.
 - `DB_NAME`: Database name
 - `JWT_SECRET_KEY`: Secret for JWT signing
 - `GOOGLE_MAPS_API_KEY`: Google Maps API key
+- `WOOCOMMERCE_SYNC_SECRET`: Shared secret for WordPress sync calls
+- `WORDPRESS_DOMAIN`: WordPress site domain (e.g., `https://embolo.in`)
 - `CORS_ORIGINS`: Allowed CORS origins
 - `UPLOAD_DIR`: File upload directory
 
