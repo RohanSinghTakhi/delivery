@@ -126,8 +126,9 @@ async def create_indexes():
         await db.drivers.create_index("vendor_id")
         await db.drivers.create_index("user_id")
         await db.drivers.create_index("status")
-        # Geospatial index for driver locations
-        await db.drivers.create_index([("current_latitude", "2dsphere"), ("current_longitude", "2dsphere")])
+        # Regular indexes for driver location coordinates
+        await db.drivers.create_index("current_latitude")
+        await db.drivers.create_index("current_longitude")
         
         # Orders indexes
         await db.orders.create_index("id", unique=True)
@@ -138,14 +139,18 @@ async def create_indexes():
         await db.orders.create_index("driver_id")
         await db.orders.create_index("status")
         await db.orders.create_index("created_at")
-        # Geospatial indexes for pickup and delivery locations
-        await db.orders.create_index([("pickup_latitude", "2dsphere"), ("pickup_longitude", "2dsphere")])
-        await db.orders.create_index([("delivery_latitude", "2dsphere"), ("delivery_longitude", "2dsphere")])
+        # Regular indexes for pickup and delivery location coordinates
+        await db.orders.create_index("pickup_latitude")
+        await db.orders.create_index("pickup_longitude")
+        await db.orders.create_index("delivery_latitude")
+        await db.orders.create_index("delivery_longitude")
         
         # Location events indexes
         await db.location_events.create_index("driver_id")
         await db.location_events.create_index("timestamp")
-        await db.location_events.create_index([("latitude", "2dsphere"), ("longitude", "2dsphere")])
+        # Regular indexes for location event coordinates
+        await db.location_events.create_index("latitude")
+        await db.location_events.create_index("longitude")
         # TTL index to auto-delete old location events after 30 days
         await db.location_events.create_index("timestamp", expireAfterSeconds=2592000)
         
